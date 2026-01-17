@@ -1,0 +1,257 @@
+---------------------------------------------------
+-- Orion Library Loader
+---------------------------------------------------
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
+
+---------------------------------------------------
+-- Services
+---------------------------------------------------
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local VirtualUser = game:GetService("VirtualUser")
+local Workspace = game:GetService("Workspace")
+
+---------------------------------------------------
+-- Player Variables
+---------------------------------------------------
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+	Character = char
+	Humanoid = char:WaitForChild("Humanoid")
+	HumanoidRootPart = char:WaitForChild("HumanoidRootPart")
+end)
+
+---------------------------------------------------
+-- Anti AFK
+---------------------------------------------------
+LocalPlayer.Idled:Connect(function()
+	VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+	task.wait(1)
+	VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+end)
+
+---------------------------------------------------
+-- Window (GAME + CREDITS)
+---------------------------------------------------
+local Window = OrionLib:MakeWindow({
+	Name = "Pls Judge | Orion Piano Hub | by @imanime2021",
+	HidePremium = false,
+	SaveConfig = true,
+	ConfigFolder = "PlsJudge_OrionHub"
+})
+
+---------------------------------------------------
+-- Tabs
+---------------------------------------------------
+local MainTab = Window:MakeTab({
+	Name = "Main",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+local PlayerTab = Window:MakeTab({
+	Name = "Player",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+local MiscTab = Window:MakeTab({
+	Name = "Misc",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+---------------------------------------------------
+-- Variables
+---------------------------------------------------
+_G.InfiniteJump = false
+local AutoPianoSit = false
+
+---------------------------------------------------
+-- Functions
+---------------------------------------------------
+local function GetNearestPianoSeat()
+	if not Character or not HumanoidRootPart then return nil end
+
+	local nearestSeat = nil
+	local shortestDistance = math.huge
+
+	for _, obj in pairs(Workspace:GetDescendants()) do
+		if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
+			if obj.Parent and string.find(obj.Parent.Name:lower(), "piano") then
+				local distance = (HumanoidRootPart.Position - obj.Position).Magnitude
+				if distance < shortestDistance then
+					shortestDistance = distance
+					nearestSeat = obj
+				end
+			end
+		end
+	end
+
+	return nearestSeat
+end
+
+---------------------------------------------------
+-- Main Tab
+---------------------------------------------------
+MainTab:AddLabel("🎮 Game: Pls Judge")
+MainTab:AddLabel("👑 Script Owner: @imanime2021 (Roblox)")
+
+MainTab:AddButton({
+	Name = "Test Notification",
+	Callback = function()
+		OrionLib:MakeNotification({
+			Name = "Pls Judge",
+			Content = "Script Loaded | by @imanime2021",
+			Time = 5
+		})
+	end
+})
+
+MainTab:AddToggle({
+	Name = "Infinite Jump",
+	Default = false,
+	Callback = function(Value)
+		_G.InfiniteJump = Value
+	end
+})
+
+MainTab:AddButton({
+	Name = "Teleport & Sit Nearest Piano Chair",
+	Callback = function()
+		local seat = GetNearestPianoSeat()
+		if seat then
+			HumanoidRootPart.CFrame = seat.CFrame + Vector3.new(0, 2, 0)
+			task.wait(0.2)
+			Humanoid.Sit = true
+		end
+	end
+})
+
+MainTab:AddToggle({
+	Name = "Auto Sit Nearest Piano",
+	Default = false,
+	Callback = function(Value)
+		AutoPianoSit = Value
+	end
+})
+
+---------------------------------------------------
+-- Player Tab
+---------------------------------------------------
+PlayerTab:AddSlider({
+	Name = "Walk Speed",
+	Min = 16,
+	Max = 150,
+	Default = 16,
+	Increment = 1,
+	ValueName = "Speed",
+	Callback = function(Value)
+		Humanoid.WalkSpeed = Value
+	end
+})
+
+PlayerTab:AddSlider({
+	Name = "Jump Power",
+	Min = 50,
+	Max = 300,
+	Default = 50,
+	Increment = 5,
+	ValueName = "Power",
+	Callback = function(Value)
+		Humanoid.JumpPower = Value
+	end
+})
+
+PlayerTab:AddButton({
+	Name = "Reset Character",
+	Callback = function()
+		Character:BreakJoints()
+	end
+})
+
+---------------------------------------------------
+-- Misc Tab
+---------------------------------------------------
+MiscTab:AddLabel("Pls Judge Script")
+MiscTab:AddLabel("Credits: @imanime2021 (Roblox)")
+
+MiscTab:AddKeybind({
+	Name = "Toggle UI (PC)",
+	Default = Enum.KeyCode.RightControl,
+	Hold = false,
+	Callback = function()
+		OrionLib:ToggleUI()
+	end
+})
+
+MiscTab:AddButton({
+	Name = "Destroy UI",
+	Callback = function()
+		OrionLib:Destroy()
+	end
+})
+
+---------------------------------------------------
+-- Infinite Jump
+---------------------------------------------------
+UserInputService.JumpRequest:Connect(function()
+	if _G.InfiniteJump then
+		Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+	end
+end)
+
+---------------------------------------------------
+-- Auto Piano Sit Loop
+---------------------------------------------------
+RunService.Heartbeat:Connect(function()
+	if AutoPianoSit and not Humanoid.Sit then
+		local seat = GetNearestPianoSeat()
+		if seat then
+			HumanoidRootPart.CFrame = seat.CFrame + Vector3.new(0, 2, 0)
+			task.wait(0.15)
+			Humanoid.Sit = true
+		end
+	end
+end)
+
+---------------------------------------------------
+-- MOBILE UI BUTTON
+---------------------------------------------------
+if UserInputService.TouchEnabled then
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "MobileToggleUI"
+	gui.ResetOnSpawn = false
+	gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(0, 140, 0, 45)
+	button.Position = UDim2.new(0, 20, 0.5, -25)
+	button.Text = "Toggle UI"
+	button.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	button.TextScaled = true
+	button.Parent = gui
+	button.Active = true
+	button.Draggable = true
+
+	button.MouseButton1Click:Connect(function()
+		OrionLib:ToggleUI()
+	end)
+end
+
+---------------------------------------------------
+-- Init + Credit Notification
+---------------------------------------------------
+OrionLib:Init()
+
+OrionLib:MakeNotification({
+	Name = "Pls Judge",
+	Content = "Orion Piano Hub | by @imanime2021",
+	Time = 6
+})
